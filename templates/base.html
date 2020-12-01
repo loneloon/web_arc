@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<title>{{object_list.title}}</title>
+</head>
+<body>
+
+{% block header_block %}
+<header><a href="/"><h1>{{object_list.title}}</h1></a></header>
+{% include "includes/inc__menu.html" %}
+{% endblock %}
+
+<maintext>
+{% block mid_block %}
+{% endblock %}
+</maintext>
+
+<footer>
+{% block foot_block %}
+{% endblock %}
+</footer>
+</body>
+</html>

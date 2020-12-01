@@ -1,0 +1,44 @@
+{% extends 'base.html' %}
+
+
+{% block mid_block %}
+
+    {% if object_list.comments %}
+        {% for comment in object_list.comments %}
+            <p>
+                Name: {{ comment.name }}<br>
+                Email: {{ comment.email }}<br>
+                Subject: {{ comment.subj }}<br>
+                Text: {{ comment.text }}
+            </p>
+        {% endfor %}
+    {% else %}
+        <p>
+            {{object_list.content}}
+        </p>
+    {% endif %}
+
+<form action="/comments/" method="post" enctype="text/plain">
+  <div>
+    <label>Name:</label>
+    <input name="name" value="">
+  </div>
+  <div>
+    <label>Email:</label>
+    <input name="email" value="">
+  </div>
+  <div>
+    <label>Subject:</label>
+    <input name="subj" value="">
+  </div>
+  <div>
+    <label>Text:</label>
+    <input name="text" value="">
+  </div>
+  <div>
+    <button>Post</button>
+  </div>
+</form>
+
+
+{% endblock %}
