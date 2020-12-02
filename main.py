@@ -2,6 +2,7 @@ from urls import url_paths
 from core.app import WebApp
 from db_assets.db_model import WebsiteDB
 from db_assets.db_recipes import COMMENTS
+from logger.logger_module import *
 
 db_path = 'webserver_db.sqlite'
 
@@ -28,4 +29,5 @@ class AppDb(WebsiteDB):
             print(e)
 
 
+sys.stdout = Log().stdout_pipe
 application = WebApp(url_paths, AppDb, db_path, [COMMENTS])

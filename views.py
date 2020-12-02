@@ -1,7 +1,9 @@
 from core.utils import *
 from core.render import page_render as render
+from logger.logger_module import Log
 
 
+@Log()
 def index(request, site=None, db=None):
     title = 'Home'
     content = 'Welcome to the main page!'
@@ -12,6 +14,7 @@ def index(request, site=None, db=None):
     return '200 OK', [res]
 
 
+@Log()
 def comments(request, site=None, db=None):
     if request['method'] == 'POST':
         try:
@@ -43,6 +46,7 @@ def comments(request, site=None, db=None):
     return '200 OK', [res]
 
 
+@Log()
 def courses(request, site, db=None):
     title = 'Online Courses'
     content = 'Courses will be displayed here...'
@@ -55,6 +59,7 @@ def courses(request, site, db=None):
     return '200 OK', [res]
 
 
+@Log()
 def create_category(request, site, db=None):
 
     try:
@@ -71,6 +76,7 @@ def create_category(request, site, db=None):
         return bad_request(request)
 
 
+@Log()
 def create_course(request, site, db=None):
 
     try:
