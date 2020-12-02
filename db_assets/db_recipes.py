@@ -13,4 +13,4 @@ USERS = "CREATE TABLE IF NOT EXISTS users "\
             "password VARCHAR(32),"\
             "first_name VARCHAR(16),"\
             "last_name VARCHAR(16),"\
-            "email VARCHAR(16),"\
+            "email VARCHAR(16),"
