@@ -18,4 +18,3 @@ class Log:
                 lw.write(record)
             return func(*args, **kwargs)
         return wrapper
-
