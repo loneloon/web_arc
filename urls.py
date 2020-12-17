@@ -4,6 +4,6 @@ url_paths = {
     '/': index,
     '/comments/': comments,
     '/online-courses/': courses,
-    '/online-courses/create-category/': create_category,
-    '/online-courses/create-course/': create_course
+    "\/online-courses\/([a-zA-Z])*\/": category_view,
+    "\/online-courses\/([a-zA-Z])*\/([a-zA-Z])*\/": course_view
 }

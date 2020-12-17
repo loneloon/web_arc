@@ -9,7 +9,7 @@ class Log:
         if not os.path.exists(r"logs"):
             os.mkdir("logs")
 
-        self.stdout_pipe = open(r"logs/logfile{0}".format(str(datetime.datetime.now())[0:10]), "a+")
+        # self.stdout_pipe = open(r"logs/logfile{0}".format(str(datetime.datetime.now())[0:10]), "a+")
 
     def __call__(self, func, *args, **kwargs):
         def wrapper(*args, **kwargs):
@@ -18,3 +18,14 @@ class Log:
                 lw.write(record)
             return func(*args, **kwargs)
         return wrapper
+
+    def enable_stdout_pipe(self):
+        sys.stdout = open(r"logs/logfile{0}".format(str(datetime.datetime.now())[0:10]), "a+")
+
+
+def debug(func):
+    def wrapper(*args, **kwargs):
+        record = f"[{datetime.datetime.now()}] {func.__class__.__name__} called: {func.__name__} args=({args, kwargs})"
+        print(record)
+        return func(*args, **kwargs)
+    return wrapper

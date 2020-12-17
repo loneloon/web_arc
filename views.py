@@ -60,33 +60,49 @@ def courses(request, site, db=None):
 
 
 @Log()
-def create_category(request, site, db=None):
+def category_view(request, site, db=None):
 
-    try:
-        name = request['queries']['name']
-        parent = None
-        if 'parent' in request['queries']:
-            parent = request['queries']['parent']
+    search_name = request['path'].split('/')
+    while '' in search_name:
+        search_name.remove('')
+    search_name = search_name[1]
 
-        site.create_category(name=name, parent=parent)
+    category_obj = None
 
-        return courses(request, site)
-    except Exception as e:
-        print(e)
+    for category in site.all_categories:
+        if category.name == search_name:
+            category_obj = category
+
+    if category_obj is None:
         return bad_request(request)
+    else:
+        title = category_obj.name
+
+        res = render('inspect.html', object_list={'title': title})
+
+        return "200 OK", [res]
 
 
 @Log()
-def create_course(request, site, db=None):
+def course_view(request, site, db=None):
 
-    try:
-        type_ = request['queries']['type']
-        name = request['queries']['name']
-        category = site.get_category_by_id_or_name(id=None, name=request['queries']['category'])
+    search_name = request['path'].split('/')
+    while '' in search_name:
+        search_name.remove('')
+    category_name = search_name[1]
+    course_name = search_name[2]
 
-        site.create_course(type_=type_, name=name, category=category)
+    course_obj = None
 
-        return courses(request, site)
-    except Exception as e:
-        print(e)
+    for course in site.all_courses:
+        if course.category.name == category_name and course.name == course_name:
+            course_obj = course
+
+    if course_obj is None:
         return bad_request(request)
+    else:
+        title = course_obj.name
+
+        res = render('inspect.html', object_list={'title': title})
+
+        return "200 OK", [res]

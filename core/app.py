@@ -1,6 +1,7 @@
 from core.utils import *
 from db_assets.db_model import WebsiteDB
 from models import CourseInterface
+import re
 
 
 class WebApp:
@@ -19,16 +20,17 @@ class WebApp:
         method = environ['REQUEST_METHOD']
         query = environ['QUERY_STRING']
 
+        request['path'] = path
         request['method'] = method
         if method == 'GET':
             request['queries'] = parse_queries(query)
         else:
             request['queries'] = parse_queries(parse_input_data(get_input_data(environ)))
 
-        try:
-            view = self.routes[path]
-        except:
-            view = not_found_404_view
+        view = bad_request
+        for key, value in self.routes.items():
+            if re.fullmatch(key, path):
+                view = value
 
         code, body = view(request=request, site=self.site, db=self.db)
 

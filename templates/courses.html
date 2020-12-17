@@ -2,7 +2,9 @@
 
 
 {% block mid_block %}
-
+    <a href="/create-category/">Create category</a> |
+    <a href="/create-course/">Create course</a>
+    <br>
     {% if object_list.categories %}
         {% for category in object_list.categories %}
             <h2>{{ category.name }}</h2>
@@ -21,20 +23,5 @@
             {{object_list.content}}
         </p>
     {% endif %}
-
-
-<form action="/online-courses/create-category/" method="post">
-  <div>
-    <label>Category name:</label>
-    <input name="name" value="">
-  </div>
-  <div>
-    <label>Parent category:</label>
-    <input name="parent" value="">
-  </div>
-  <div>
-    <button>Create</button>
-  </div>
-</form>
 
 {% endblock %}

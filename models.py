@@ -1,3 +1,6 @@
+from patterns.prototypes import PrototypeMixin
+
+
 class User:
 
     def __init__(self, name):
@@ -40,7 +43,7 @@ class Category:
         return result
 
 
-class Course:
+class Course(PrototypeMixin):
 
     def __init__(self, name, category):
         self.name = name
@@ -113,6 +116,3 @@ class CourseInterface:
             if c.name == name:
                 return c
         return None
-
-
-
