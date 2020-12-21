@@ -7,11 +7,11 @@
     <br>
     {% if object_list.categories %}
         {% for category in object_list.categories %}
-            <h2>{{ category.name }}</h2>
+            <h2><a href="/online-courses/{{ category.name }}/">{{ category.name }}</a></h2>
             <p>
                 {% if category.courses %}
                     {% for course in category.courses %}
-                        {{ course.name }}
+                        <a href="/online-courses/{{ category.name }}/{{ course.name }}/">{{ course.name }}</a>
                     {% endfor %}
                 {% else %}
                     No courses available...

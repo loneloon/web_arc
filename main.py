@@ -1,7 +1,7 @@
 from urls import url_paths
-from core.app import WebApp, bad_request
+from core.app import WebApp, DebugApp, FakeApp, bad_request
 from db_assets.db_model import WebsiteDB
-from db_assets.db_recipes import COMMENTS
+from db_assets.db_recipes import *
 from logger.logger_module import *
 from core.render import page_render as render
 from views import courses
@@ -11,7 +11,6 @@ db_path = 'webserver_db.sqlite'
 
 class AppDb(WebsiteDB):
 
-    @debug
     def load_comments(self):
         try:
             self.cursor.execute("SELECT * FROM messages;")
@@ -24,7 +23,6 @@ class AppDb(WebsiteDB):
             print(e)
             return []
 
-    @debug
     def save_comment(self, name, email, subj, text):
         try:
             self.cursor.execute(f"INSERT INTO messages VALUES (Null,'{name}', '{email}', '{subj}', '{text}');")
@@ -34,10 +32,12 @@ class AppDb(WebsiteDB):
 
 
 # Log().enable_stdout_pipe()
-application = WebApp(url_paths, AppDb, db_path, [COMMENTS])
+application = FakeApp(routes=url_paths, db_model=AppDb, db_path=db_path, db_tables=[
+    COMMENTS, USERS, CATEGORIES, COURSES, TEACHERS, STUDENTS])
 
 
 @application.add_route('/create-category/')
+@Log()
 def create_category(request, site, db=None):
 
     if request['method'] == "POST":
@@ -67,6 +67,7 @@ def create_category(request, site, db=None):
 
 
 @application.add_route('/create-course/')
+@Log()
 def create_course(request, site, db=None):
 
     if request['method'] == "POST":

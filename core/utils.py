@@ -1,3 +1,6 @@
+import re
+
+
 def parse_queries(data: str):
     result = {}
 
@@ -44,3 +47,26 @@ def not_found_404_view(request, site=None, db=None):
 
 def bad_request(request, site=None, db=None):
     return '404 BAD', [b'404 Bad Request, Buddy']
+
+
+def re_match_view(path, routes, alt):
+    view = alt
+    for key, value in routes.items():
+        if re.fullmatch(key, path):
+            view = value
+
+    return view
+
+
+def compile_request(environ):
+    request = {
+        'path': environ['PATH_INFO'],
+        'method': environ['REQUEST_METHOD']
+    }
+
+    if request['method'] == 'GET':
+        request['queries'] = parse_queries(environ['QUERY_STRING'])
+    else:
+        request['queries'] = parse_queries(parse_input_data(get_input_data(environ)))
+
+    return request

@@ -1,118 +1,53 @@
-from patterns.prototypes import PrototypeMixin
+import datetime
 
 
-class User:
+class TrainingSite:
 
-    def __init__(self, name):
-        self.name = name
+    class Category:
+        __slots__ = 'id', 'name', 'parent', 'description'
 
+        def __init__(self, name, parent=None, description=None):
+            self.id = None
+            self.name = name
+            self.parent = parent
+            self.description = description
 
-class Trainee(User):
-    pass
+    class Course:
+        __slots__ = 'id', 'name', 'type_', 'category_fk', 'description'
 
+        def __init__(self, name, type_, category, description=None):
+            self.id = None
+            self.name = name
+            self.type_ = type_
+            self.category_fk = category
+            self.description = description
 
-class Trainer(User):
-    pass
+    class User:
+        __slots__ = 'id', 'name', 'password', 'last_login_date', 'full_name', 'email'
 
+        def __init__(self, username, password, full_name, email=None):
+            self.id = None
+            self.name = username
+            self.password = password
+            self.last_login_date = datetime.datetime.now()
+            self.full_name = full_name
+            self.email = email
 
-class UserMaker:
+    class Student:
+        __slots__ = 'id', 'user_fk', 'course_fk'
 
-    roles = {
-        'trainer': Trainer,
-        'trainee': Trainee
-    }
-    
-    @classmethod
-    def create(cls, name, role):
-        return cls.roles[role](name)
+        def __init__(self, user, course):
+            self.id = None
+            self.user_fk = user
+            self.course_fk = course
 
+    class Curator(Student):
+        pass
 
-class Category:
-
-    primary_key = 0
-
-    def __init__(self, name, parent=None):
-        self.id = self.__class__.primary_key
-        self.__class__.primary_key += 1
-        self.name = name
-        self.parent = parent
-        self.courses = []
-
-    def count_courses(self):
-        result = self.courses.__len__()
-        return result
-
-
-class Course(PrototypeMixin):
-
-    def __init__(self, name, category):
-        self.name = name
-        self.category = category
-        self.category.courses.append(self)
-
-
-class Interactive(Course):
-    pass
-
-
-class Tutorial(Course):
-    pass
-
-
-class CourseMaker:
-
-    types = {
-        'interactive': Interactive,
-        'tutorial': Tutorial
-    }
-
-    def __init__(self, name, category):
-        self.name = name
-        self.category = category
+    class Teacher(Student):
+        pass
 
     @classmethod
-    def create(cls, type_, name, category):
-        return cls.types[type_](name, category)
+    def get_inner_classes(cls):
+        return [cls_attribute for cls_attribute in cls.__dict__.values() if type(cls_attribute) is type]
 
-
-class CourseInterface:
-
-    def __init__(self):
-        self.all_trainers = []
-        self.all_trainees = []
-        self.all_categories = []
-        self.all_courses = []
-
-    def create_user(self, name, role):
-        return UserMaker.create(name, role)
-
-    def create_category(self, name, parent=None):
-        result = Category(name, parent)
-        self.all_categories.append(result)
-        return result
-
-    def create_course(self, type_, name, category):
-        result = CourseMaker.create(type_, name, category)
-        self.all_courses.append(result)
-        return result
-
-    def get_category_by_id_or_name(self, id=None, name=None):
-
-        if name is None:
-            for c in self.all_categories:
-                if c.id == id:
-                    return c
-            raise Exception(f"[ERROR]: id={id}. No matching categories!")
-        elif id is None:
-            for c in self.all_categories:
-                if c.name == name:
-                    return c
-            raise Exception(f"[ERROR]: id={id}. No matching categories!")
-        else:
-            raise Exception(f"[ERROR]: No search criteria set!")
-
-    def get_course_by_name(self, name):
-        for c in self.all_courses:
-            if c.name == name:
-                return c
-        return None
