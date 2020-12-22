@@ -5,7 +5,7 @@ import sys
 
 
 class WebApp:
-    def __init__(self, routes, db_model=None, db_path=None, db_tables=None):
+    def __init__(self, routes, db_module=None, db_path=None, db_models=None):
         # url-view dictionary
         self.routes = routes
 

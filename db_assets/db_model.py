@@ -76,8 +76,9 @@ class WebsiteDB:
     def delete_object(self, model, **kwargs):
         try:
             result = self.get_object(model, **kwargs)
-            result.delete()
+            self.session.delete(result)
 
             self.session.commit()
         except Exception as e:
             print(e)
+
