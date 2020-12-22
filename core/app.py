@@ -1,20 +1,19 @@
 from core.utils import *
-from models import CourseInterface
 import datetime
 import os
 import sys
 
 
 class WebApp:
-    def __init__(self, routes, db_model, db_path, db_tables=None):
+    def __init__(self, routes, db_model=None, db_path=None, db_tables=None):
         # url-view dictionary
         self.routes = routes
 
         # app model instance
-        self.site = CourseInterface()
-        self.db = db_model(db_path, db_tables)
+        # self.site = CourseInterface()
+        # self.db = db_model(db_path, db_tables)
 
-        if 'Debug' or 'Fake' not in self.__class__.__name__:
+        if 'Debug' not in self.__class__.__name__:
             sys.stdout = open(os.devnull, 'w')
 
     def __call__(self, environ, start_response):
@@ -23,7 +22,7 @@ class WebApp:
 
         view = re_match_view(path=request['path'], routes=self.routes, alt=bad_request)
 
-        code, body = view(request=request, site=self.site, db=self.db)
+        code, body = view(request=request)
 
         start_response(code, [('Content-Type', 'text/html')])
 
@@ -45,7 +44,7 @@ class DebugApp(WebApp):
 
         view = re_match_view(path=request['path'], routes=self.routes, alt=bad_request)
 
-        code, body = view(request=request, site=self.site, db=self.db)
+        code, body = view(request=request)
 
         if "OK" in code:
             color_code = '\033[92m'

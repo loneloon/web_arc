@@ -13,17 +13,24 @@ class TrainingSite:
             self.description = description
 
     class Course:
-        __slots__ = 'id', 'name', 'type_', 'category_fk', 'description'
+        __slots__ = 'id', 'name', 'coursetype_fk', 'category_fk', 'description'
 
-        def __init__(self, name, type_, category, description=None):
+        def __init__(self, name, coursetype_fk, category_fk, description=None):
             self.id = None
             self.name = name
-            self.type_ = type_
-            self.category_fk = category
+            self.coursetype_fk = coursetype_fk
+            self.category_fk = category_fk
             self.description = description
 
+    class Coursetype:
+        __slots__ = 'id', 'name'
+
+        def __init__(self, name):
+            self.id = None
+            self.name = name
+
     class User:
-        __slots__ = 'id', 'name', 'password', 'last_login_date', 'full_name', 'email'
+        __slots__ = 'id', 'name', 'password', 'last_login_date', 'full_name', 'email', 'is_active'
 
         def __init__(self, username, password, full_name, email=None):
             self.id = None
@@ -32,6 +39,7 @@ class TrainingSite:
             self.last_login_date = datetime.datetime.now()
             self.full_name = full_name
             self.email = email
+            self.is_active = None
 
     class Student:
         __slots__ = 'id', 'user_fk', 'course_fk'

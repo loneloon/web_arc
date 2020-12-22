@@ -1,7 +1,7 @@
 from urls import url_paths
 from core.app import WebApp, DebugApp, FakeApp, bad_request
 from db_assets.db_model import WebsiteDB
-from db_assets.db_recipes import *
+
 from logger.logger_module import *
 from core.render import page_render as render
 from views import courses
@@ -32,8 +32,7 @@ class AppDb(WebsiteDB):
 
 
 # Log().enable_stdout_pipe()
-application = FakeApp(routes=url_paths, db_model=AppDb, db_path=db_path, db_tables=[
-    COMMENTS, USERS, CATEGORIES, COURSES, TEACHERS, STUDENTS])
+application = DebugApp(routes=url_paths)
 
 
 @application.add_route('/create-category/')
