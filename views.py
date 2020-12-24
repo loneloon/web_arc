@@ -3,47 +3,76 @@ from core.render import page_render as render
 from logger.logger_module import Log
 
 
-@Log()
-def index(request, site=None, db=None):
-    title = 'Home'
-    content = 'Welcome to the main page!'
+class BaseView:
+    __slots__ = 'title', 'content', 'template'
 
-    res = render('home.html', object_list={'title': title,
-                                           'content': content})
+    @classmethod
+    @Log()
+    def view(cls, request, db=None, site=None):
+        if request['method'] == 'GET':
+            return cls().get(request, db, site)
+        else:
+            return cls().post(request, db, site)
 
-    return '200 OK', [res]
+    def response(self, template=None, object_list=None):
+        if template is None:
+            template = self.template
+
+        if object_list is None:
+            object_list = {'title': self.title,
+                           'content': self.content}
+
+        res = render(template, object_list=object_list)
+        return '200 OK', [res]
+
+    def get(self, request, db, site):
+        return self.response()
+
+    def post(self, request, db, site):
+        return self.response()
 
 
-@Log()
-def comments(request, site=None, db=None):
-    if request['method'] == 'POST':
+class Index(BaseView):
+
+    def __init__(self):
+        super().__init__()
+        self.title = 'Home'
+        self.content = 'Welcome to the main page!'
+        self.template = 'home.html'
+
+
+class Comments(BaseView):
+
+    def __init__(self):
+        super().__init__()
+        self.title = "Comments"
+        self.content = 'New comments will appear here...'
+        self.template = 'comments.html'
+
+    def get(self, request, db, site):
+        comments_list = db.get_object(model=Comments, all=True)
+
+        objects_list = {'title': self.title, 'content': self.content, 'comments': comments_list}
+
+        return self.response(self.template, objects_list)
+
+    def post(self, request, db, site):
         try:
-            db.save_comment(request['queries']['name'],
-                            request['queries']['email'],
-                            request['queries']['subj'],
-                            request['queries']['text'])
+            db.create_object(model=site.Comments,
+                             **request['queries'])
+            return self.get(request, db, site)
         except Exception as e:
             print(e)
+            return bad_request(request)
 
-    title = 'Comments'
-    content = 'New comments will appear here...'
 
-    comments = []
+class Categories:
 
-    try:
-        loaded_comments = db.load_comments()
-    except Exception as e:
-        print(e)
-        loaded_comments = []
-
-    for comment in loaded_comments:
-        comments.append({'name': comment[1], 'email': comment[2], 'subj': comment[3], 'text': comment[4]})
-
-    res = render('comments.html', object_list={'title': title,
-                                               'content': content,
-                                               'comments': comments})
-
-    return '200 OK', [res]
+    def __init__(self):
+        super().__init__()
+        self.title = "Online Courses: Categories"
+        self.content = 'Active categories will be displayed here'
+        self.template = 'courses.html'
 
 
 @Log()
@@ -61,7 +90,6 @@ def courses(request, site, db=None):
 
 @Log()
 def category_view(request, site, db=None):
-
     search_name = request['path'].split('/')
     while '' in search_name:
         search_name.remove('')
@@ -85,7 +113,6 @@ def category_view(request, site, db=None):
 
 @Log()
 def course_view(request, site, db=None):
-
     search_name = request['path'].split('/')
     while '' in search_name:
         search_name.remove('')

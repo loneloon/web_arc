@@ -5,13 +5,12 @@ import sys
 
 
 class WebApp:
-    def __init__(self, routes, db_module=None, db_path=None, db_models=None):
+    def __init__(self, routes, db_module=None, db_path=None, models=None):
         # url-view dictionary
         self.routes = routes
 
-        # app model instance
-        # self.site = CourseInterface()
-        # self.db = db_model(db_path, db_tables)
+        self.db = db_module(db_path, models)
+        self.site = models
 
         if 'Debug' not in self.__class__.__name__:
             sys.stdout = open(os.devnull, 'w')
@@ -22,7 +21,7 @@ class WebApp:
 
         view = re_match_view(path=request['path'], routes=self.routes, alt=bad_request)
 
-        code, body = view(request=request)
+        code, body = view(request=request, db=self.db, site=self.site)
 
         start_response(code, [('Content-Type', 'text/html')])
 
@@ -44,7 +43,7 @@ class DebugApp(WebApp):
 
         view = re_match_view(path=request['path'], routes=self.routes, alt=bad_request)
 
-        code, body = view(request=request)
+        code, body = view(request=request, db=self.db, site=self.site)
 
         if "OK" in code:
             color_code = '\033[92m'

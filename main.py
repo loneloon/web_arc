@@ -1,38 +1,16 @@
 from urls import url_paths
 from core.app import WebApp, DebugApp, FakeApp, bad_request
 from db_assets.db_model import WebsiteDB
-
+from models import TrainingSite
 from logger.logger_module import *
 from core.render import page_render as render
 from views import courses
 
-db_path = 'webserver_db.sqlite'
-
-
-class AppDb(WebsiteDB):
-
-    def load_comments(self):
-        try:
-            self.cursor.execute("SELECT * FROM messages;")
-            result = self.cursor.fetchall()
-            if not result:
-                return []
-            else:
-                return result
-        except Exception as e:
-            print(e)
-            return []
-
-    def save_comment(self, name, email, subj, text):
-        try:
-            self.cursor.execute(f"INSERT INTO messages VALUES (Null,'{name}', '{email}', '{subj}', '{text}');")
-            self.conn.commit()
-        except Exception as e:
-            print(e)
+db_path = 'sqlite:///webserver_db.db3'
 
 
 # Log().enable_stdout_pipe()
-application = DebugApp(routes=url_paths)
+application = DebugApp(routes=url_paths, db_path=db_path, db_module=WebsiteDB, models=TrainingSite)
 
 
 @application.add_route('/create-category/')
