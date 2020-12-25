@@ -31,7 +31,7 @@ class TrainingSite:
             self.name = name
 
     class User(ModelMixin):
-        __slots__ = 'id', 'name', 'password', 'last_login_date', 'full_name', 'email', 'is_active'
+        __slots__ = 'id', 'name', 'password', 'last_login_date', 'full_name', 'email', 'is_active', 'is_superuser'
 
         def __init__(self, username, password, full_name, email=None):
             self.id = None
@@ -41,6 +41,7 @@ class TrainingSite:
             self.full_name = full_name
             self.email = email
             self.is_active = None
+            self.is_superuser = None
 
     class Student(ModelMixin):
         __slots__ = 'id', 'user_fk', 'course_fk'

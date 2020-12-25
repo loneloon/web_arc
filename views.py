@@ -14,15 +14,27 @@ class BaseView:
         else:
             return cls().post(request, db, site)
 
-    def response(self, template=None, object_list=None):
-        if template is None:
-            template = self.template
+    def harvest_db_obj(self, db_response):
+        result = None
+        try:
+            if db_response is not None:
+                result = list(dict((k, v)
+                                   for k, v in obj.__dict__.items()
+                                   if not k.startswith('_'))
+                              for obj in db_response)
+        except Exception as e:
+            print(e)
+        finally:
+            return result
 
-        if object_list is None:
-            object_list = {'title': self.title,
-                           'content': self.content}
+    def response(self, appendix=None):
+        object_list = {'title': self.title,
+                       'content': self.content}
 
-        res = render(template, object_list=object_list)
+        if appendix is not None:
+            object_list.update(appendix)
+
+        res = render(self.template, object_list=object_list)
         return '200 OK', [res]
 
     def get(self, request, db, site):
@@ -50,11 +62,11 @@ class Comments(BaseView):
         self.template = 'comments.html'
 
     def get(self, request, db, site):
-        comments_list = db.get_object(model=Comments, all=True)
+        comments_list = db.get_object(model=site.Comments)
 
         objects_list = {'title': self.title, 'content': self.content, 'comments': comments_list}
 
-        return self.response(self.template, objects_list)
+        return self.response(objects_list)
 
     def post(self, request, db, site):
         try:
@@ -66,13 +78,55 @@ class Comments(BaseView):
             return bad_request(request)
 
 
-class Categories:
+class Categories(BaseView):
 
     def __init__(self):
         super().__init__()
         self.title = "Online Courses: Categories"
         self.content = 'Active categories will be displayed here'
         self.template = 'courses.html'
+
+    def pack_children(self, obj_list):
+        try:
+            if obj_list is not None:
+                for obj in obj_list:
+                    obj['children'] = []
+                    if obj['parent'] is None:
+                        obj['parent'] = 0
+                obj_list.sort(key=lambda x: x['parent'], reverse=True)
+
+                no_orphans = False
+
+                while not no_orphans:
+                    no_orphans = True
+                    for obj in obj_list:
+                        if obj['parent'] != 0:
+                            no_orphans = False
+                            for parent in obj_list:
+                                if parent['id'] == obj['parent']:
+                                    parent['children'].append(obj)
+                            del obj_list[obj_list.index(obj)]
+                return obj_list
+            else:
+                return None
+        except Exception as e:
+            print(e)
+            return None
+
+    def fetch_courses(self, db, site, cat_list, cat_id):
+        for cat in cat_list:
+            cat['courses'] = self.harvest_db_obj(db.get_object(model=site.Course, all=True))
+
+    def get(self, request, db, site):
+        categories_list = self.pack_children(self.harvest_db_obj(
+            db.get_object(model=site.Category, all=True)))
+
+        object_list = {'categories': categories_list}
+
+        return self.response(object_list)
+
+    def post(self, request, db, site):
+        return self.get(request, db, site)
 
 
 @Log()

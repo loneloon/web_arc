@@ -73,7 +73,7 @@ class WebsiteDB:
                 if not all:
                     return result.first()
                 else:
-                    return result
+                    return result.all()
             else:
                 return None
         except Exception as e:
@@ -88,4 +88,3 @@ class WebsiteDB:
             self.session.commit()
         except Exception as e:
             print(e)
-
