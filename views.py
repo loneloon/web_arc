@@ -64,9 +64,9 @@ class Comments(BaseView):
     def get(self, request, db, site):
         comments_list = db.get_object(model=site.Comments)
 
-        objects_list = {'title': self.title, 'content': self.content, 'comments': comments_list}
+        object_list = {'title': self.title, 'content': self.content, 'comments': comments_list}
 
-        return self.response(objects_list)
+        return self.response(object_list)
 
     def post(self, request, db, site):
         try:
@@ -78,13 +78,13 @@ class Comments(BaseView):
             return bad_request(request)
 
 
-class Categories(BaseView):
+class CategoryView(BaseView):
 
     def __init__(self):
         super().__init__()
-        self.title = "Online Courses: Categories"
+        self.title = None
         self.content = 'Active categories will be displayed here'
-        self.template = 'courses.html'
+        self.template = 'inspect.html'
 
     def pack_children(self, obj_list):
         try:
@@ -113,20 +113,63 @@ class Categories(BaseView):
             print(e)
             return None
 
-    def fetch_courses(self, db, site, cat_list, cat_id):
-        for cat in cat_list:
-            cat['courses'] = self.harvest_db_obj(db.get_object(model=site.Course, all=True))
+    def fetch_courses(self, db, site, cat_list):
+        if cat_list:
+            for cat in cat_list:
+                try:
+                    cat['courses'] = self.harvest_db_obj(
+                        db.get_object(model=site.Course, all=True, category_fk=cat['id']))
+                except Exception as e:
+                    print(e)
+                    cat['courses'] = None
+            return cat_list
+        else:
+            return None
+
+    def get_categories(self, db, site, names=None):
+        result = self.pack_children(
+                self.fetch_courses(
+                    db, site, self.harvest_db_obj(
+                        db.get_object(model=site.Category, all=True))))
+
+        try:
+            if names is not None:
+                result = list(obj for obj in result if obj['name'] in names)
+        except Exception as e:
+            print(e)
+            result = None
+        return result
 
     def get(self, request, db, site):
-        categories_list = self.pack_children(self.harvest_db_obj(
-            db.get_object(model=site.Category, all=True)))
+        search_name = request['path'].split('/')
+        while '' in search_name:
+            search_name.remove('')
+        search_name = search_name[1]
 
-        object_list = {'categories': categories_list}
-
-        return self.response(object_list)
+        category = self.get_categories(db, site, names=[search_name])
+        if category:
+            object_list = {'category': category[0]}
+            return self.response(object_list)
+        else:
+            return bad_request(request)
 
     def post(self, request, db, site):
         return self.get(request, db, site)
+
+
+class Categories(CategoryView):
+
+    def __init__(self):
+        super().__init__()
+        self.title = "Online Courses: Categories"
+        self.content = 'Active categories will be displayed here'
+        self.template = 'courses.html'
+
+    def get(self, request, db, site):
+        categories_list = self.get_categories(db, site)
+        object_list = {'categories': categories_list}
+
+        return self.response(object_list)
 
 
 @Log()
