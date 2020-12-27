@@ -5,5 +5,5 @@ url_paths = {
     '/comments/': Comments().view,
     '/online-courses/': Categories().view,
     "\/online-courses\/([a-zA-Z0-9])*\/": CategoryView().view,
-    "\/online-courses\/([a-zA-Z])*\/([a-zA-Z])*\/": course_view
+    "\/online-courses\/([a-zA-Z0-9])*\/([a-zA-Z0-9])*\/": Course().view
 }

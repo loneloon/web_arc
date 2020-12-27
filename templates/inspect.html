@@ -2,5 +2,42 @@
 
 
 {% block mid_block %}
+    {% if object_list.category %}
 
+        {% if object_list.category.description %}
+            {{ object_list.category.description }}
+        {% else %}
+            No description...<br>
+        {% endif %}
+
+        {% if object_list.category.children %}
+            {% for category in object_list.category.children recursive %}
+                {{ '&nbsp;&nbsp;'* (loop.depth-1) }}<a href="
+                {% if object_list.path %}{{ object_list.path }}{% else %}/{% endif %}{{ category.name }}/">{{ category.name }}</a><br>
+                {% if category.courses %}
+                    {% for course in category.courses %}
+                        {{ '&nbsp;&nbsp;'* (loop.depth) }}{{ course.name }}<br>
+                    {% endfor %}
+                {% else %}
+                        {{ '&nbsp;&nbsp;'* (loop.depth) }}No courses here yet...<br>
+                {% endif %}
+                {% if category.children %}
+                    {{ loop(category.children) }}
+                {% endif %}
+            {% endfor %}
+        {% endif %}
+        {% if object_list.category.courses %}
+            {% for course in object_list.category.courses %}
+                {{ course.name }}<br>
+            {% endfor %}
+        {% else %}
+            Available courses will be displayed here.
+        {% endif %}
+    {% elif object_list.course %}
+        {% if object_list.course.description %}
+            {{ object_list.course.description }}
+        {% else %}
+            No description...
+        {% endif %}
+    {% endif %}
 {% endblock %}

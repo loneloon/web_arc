@@ -17,15 +17,27 @@ class BaseView:
     def harvest_db_obj(self, db_response):
         result = None
         try:
-            if db_response is not None:
+            if db_response is not None and isinstance(db_response, list or tuple):
                 result = list(dict((k, v)
                                    for k, v in obj.__dict__.items()
                                    if not k.startswith('_'))
                               for obj in db_response)
+            elif not isinstance(db_response, list or tuple):
+                result = db_response
         except Exception as e:
             print(e)
         finally:
             return result
+
+    def slice_path(self, source):
+        try:
+            source = source.split('/')
+            while '' in source:
+                source.remove('')
+                return source
+        except Exception as e:
+            print(e)
+            return []
 
     def response(self, appendix=None):
         object_list = {'title': self.title,
@@ -105,7 +117,8 @@ class CategoryView(BaseView):
                             for parent in obj_list:
                                 if parent['id'] == obj['parent']:
                                     parent['children'].append(obj)
-                            del obj_list[obj_list.index(obj)]
+                                    del obj_list[obj_list.index(obj)]
+                            obj['parent'] = 0
                 return obj_list
             else:
                 return None
@@ -126,29 +139,35 @@ class CategoryView(BaseView):
         else:
             return None
 
-    def get_categories(self, db, site, names=None):
+    def get_categories(self, db, site, name=None):
+        result = self.harvest_db_obj(
+            db.get_object(model=site.Category, all=True))
+        if name is not None:
+            top_id = int(db.get_object(model=site.Category, name=name).id)
+            result = list(obj for obj in result if int(obj['id']) >= top_id)
+            print(result)
+
         result = self.pack_children(
-                self.fetch_courses(
-                    db, site, self.harvest_db_obj(
-                        db.get_object(model=site.Category, all=True))))
+            self.fetch_courses(
+                db, site, result))
 
         try:
-            if names is not None:
-                result = list(obj for obj in result if obj['name'] in names)
+            if name is not None:
+                result = list(obj for obj in result if obj['name'] == name)
         except Exception as e:
             print(e)
             result = None
         return result
 
     def get(self, request, db, site):
-        search_name = request['path'].split('/')
-        while '' in search_name:
-            search_name.remove('')
-        search_name = search_name[1]
+        search_name = self.slice_path(request['path'])[1]
 
-        category = self.get_categories(db, site, names=[search_name])
+        category = self.get_categories(db, site, name=search_name)
+
         if category:
-            object_list = {'category': category[0]}
+            self.title = search_name
+            path = '/{0}/'.format(self.slice_path(request['path'])[0])
+            object_list = {'category': category[0], 'path': path}
             return self.response(object_list)
         else:
             return bad_request(request)
@@ -163,11 +182,12 @@ class Categories(CategoryView):
         super().__init__()
         self.title = "Online Courses: Categories"
         self.content = 'Active categories will be displayed here'
-        self.template = 'courses.html'
+        self.template = 'categories.html'
 
     def get(self, request, db, site):
         categories_list = self.get_categories(db, site)
-        object_list = {'categories': categories_list}
+        path = '/{0}/'.format(self.slice_path(request['path'])[0])
+        object_list = {'categories': categories_list, 'path': path}
 
         return self.response(object_list)
 
@@ -178,11 +198,36 @@ def courses(request, site, db=None):
     content = 'Courses will be displayed here...'
     categories = site.all_categories
 
-    res = render('courses.html', object_list={'title': title,
-                                              'content': content,
-                                              'categories': categories})
+    res = render('categories.html', object_list={'title': title,
+                                                 'content': content,
+                                                 'categories': categories})
 
     return '200 OK', [res]
+
+
+class Course(BaseView):
+
+    def __init__(self):
+        super().__init__()
+        self.title = None
+        self.content = 'Short description of the course'
+        self.template = 'inspect.html'
+
+    def get(self, request, db, site):
+        path = self.slice_path(request['path'])
+        parent, name = path[1], path[2]
+        link_is_valid = db.get_object(model=site.Category, name=parent).id == \
+                        db.get_object(model=site.Course, name=name).category_fk
+        if link_is_valid:
+            course = self.harvest_db_obj(db.get_object(model=site.Course, name=name))
+            if course:
+                self.title = name
+                object_list = {'course': course}
+                return self.response(object_list)
+            else:
+                return bad_request(request)
+        else:
+            return bad_request(request)
 
 
 @Log()
