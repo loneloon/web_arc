@@ -9,30 +9,44 @@
         {% else %}
             No description...<br>
         {% endif %}
-
         {% if object_list.category.children %}
             {% for category in object_list.category.children recursive %}
-                {{ '&nbsp;&nbsp;'* (loop.depth-1) }}<a href="
-                {% if object_list.path %}{{ object_list.path }}{% else %}/{% endif %}{{ category.name }}/">{{ category.name }}</a><br>
+                <ul>
+                <li>
+                <a href="
+                {% if object_list.path %}{{ object_list.path }}{% else %}/{% endif %}{{ category.name }}/">{{ category.name }}</a>
+                    <ul>
                 {% if category.courses %}
+
                     {% for course in category.courses %}
-                        {{ '&nbsp;&nbsp;'* (loop.depth) }}{{ course.name }}<br>
+                        <li>
+                            <a href="
+                {% if object_list.path %}{{ object_list.path }}{% else %}/{% endif %}{{ category.name }}/{{ course.name }}/">{{ course.name }}</a>
+                        </li>
                     {% endfor %}
+
                 {% else %}
-                        {{ '&nbsp;&nbsp;'* (loop.depth) }}No courses here yet...<br>
+                    No courses here yet...
                 {% endif %}
+                    </ul>
                 {% if category.children %}
                     {{ loop(category.children) }}
                 {% endif %}
+                </li>
+                </ul>
             {% endfor %}
+
         {% endif %}
+        <ul>
         {% if object_list.category.courses %}
             {% for course in object_list.category.courses %}
-                {{ course.name }}<br>
+            <li><a href="
+                {% if object_list.path %}{{ object_list.path }}{% else %}/{% endif %}{{ object_list.category.name }}/{{ course.name }}/">{{ course.name }}</a></li>
             {% endfor %}
         {% else %}
             Available courses will be displayed here.
         {% endif %}
+        </ul>
     {% elif object_list.course %}
         {% if object_list.course.description %}
             {{ object_list.course.description }}

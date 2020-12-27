@@ -4,7 +4,6 @@ from db_assets.db_model import WebsiteDB
 from models import TrainingSite
 from logger.logger_module import *
 from core.render import page_render as render
-from views import courses
 
 db_path = 'sqlite:///webserver_db.db3'
 
