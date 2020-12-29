@@ -51,7 +51,12 @@ class DebugApp(WebApp):
             color_code = '\033[93m'
         end_color_code = '\033[0m'
 
-        print("{0}[{1}]: {2} '{3}' {4}{5}".format(color_code, datetime.datetime.now(), request['method'], request['path'], code, end_color_code))
+        print("{0}[{1}]: {2} '{3}' {4}{5}".format(color_code,
+                                                  datetime.datetime.now(),
+                                                  request['method'],
+                                                  request['path'],
+                                                  code,
+                                                  end_color_code))
 
         start_response(code, [('Content-Type', 'text/html')])
 

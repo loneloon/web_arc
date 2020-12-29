@@ -61,9 +61,9 @@ def re_match_view(path, routes, alt):
 def compile_request(environ):
     request = {
         'path': environ['PATH_INFO'],
-        'method': environ['REQUEST_METHOD']
+        'method': environ['REQUEST_METHOD'],
+        'cookie': environ['HTTP_COOKIE']
     }
-
     if request['method'] == 'GET':
         request['queries'] = parse_queries(environ['QUERY_STRING'])
     else:

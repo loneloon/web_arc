@@ -1,5 +1,6 @@
 import datetime
 from patterns.prototypes import ModelMixin
+import hashlib
 
 
 class TrainingSite:
@@ -31,25 +32,34 @@ class TrainingSite:
             self.name = name
 
     class User(ModelMixin):
-        __slots__ = 'id', 'name', 'password', 'last_login_date', 'full_name', 'email', 'is_active', 'is_superuser'
+        __slots__ = 'id', 'name', 'password', 'full_name', 'email', 'is_active', 'registration_date', 'is_superuser'
 
-        def __init__(self, username, password, full_name, email=None):
+        def __init__(self, name, password, full_name, email=None):
             self.id = None
-            self.name = username
+            self.name = name
             self.password = password
-            self.last_login_date = datetime.datetime.now()
             self.full_name = full_name
             self.email = email
             self.is_active = None
+            self.registration_date = datetime.datetime.now()
             self.is_superuser = None
+
+    class ActiveUser(ModelMixin):
+        __slots__ = 'id', 'cookie', 'last_login_date', 'user_fk'
+
+        def __init__(self):
+            self.id = None
+            self.cookie = None
+            self.last_login_date = datetime.datetime.now()
+            self.user_fk = None
 
     class Student(ModelMixin):
         __slots__ = 'id', 'user_fk', 'course_fk'
 
-        def __init__(self, user, course):
+        def __init__(self, user_fk, course_fk):
             self.id = None
-            self.user_fk = user
-            self.course_fk = course
+            self.user_fk = user_fk
+            self.course_fk = course_fk
 
     class Curator(Student):
         pass

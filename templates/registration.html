@@ -1,0 +1,28 @@
+{% extends 'base.html' %}
+
+
+{% block mid_block %}
+<form action="{{ object_list.path }}" method="post">
+    {% for field in object_list.form %}
+        {% if 'password' in field %}
+            <div>
+            <label>{{ field.capitalize() }}</label>
+              <input name="{{ field }}1" type="password" value="" required />
+            </div>
+            <div>
+                <label>{{ 'Repeat '+field }}</label>
+                  <input name="{{ field }}2" type="password" value="" required />
+            </div>
+        {% else %}
+            <div>
+            <label>{{ field.replace('_', ' ').capitalize() }}</label>
+              <input name="{{ field }}" value="" required />
+            </div>
+        {% endif %}
+    {% endfor %}
+    <input type="hidden" name="csrf_token" value="{{ object_list.csrf_token }}">
+    <div>
+      <button>Create</button>
+    </div>
+  </form>
+{% endblock %}

@@ -216,3 +216,29 @@ class Course(BaseView):
         else:
             return bad_request(request)
 
+
+class Register(BaseView):
+
+    def __init__(self):
+        super().__init__()
+        self.title = "Sign Up"
+        self.content = 'This is the sign up page...'
+        self.template = 'registration.html'
+
+    def get(self, request, db, site):
+
+        fields = []
+        exclude = ('id', 'is_active', 'registration_date', 'is_superuser')
+
+        for field in site.User.__slots__:
+            if field not in exclude:
+                fields.append(field)
+        token = request['cookie'][request['cookie'].index('=')+1:]
+        object_list = {'csrf_token': token, 'path': request['path'], 'form': fields}
+
+        return self.response(object_list)
+
+    def post(self, request, db, site):
+
+        print(request['queries'])
+        return bad_request(request)
