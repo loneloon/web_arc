@@ -4,6 +4,9 @@ import os
 import sys
 
 
+host_name = 'http://127.0.0.1:8000'
+
+
 class WebApp:
     def __init__(self, routes, db_module=None, db_path=None, models=None):
         # url-view dictionary
@@ -16,16 +19,23 @@ class WebApp:
             sys.stdout = open(os.devnull, 'w')
 
     def __call__(self, environ, start_response):
-
         request = compile_request(environ)
+
+        request['user'] = is_logged_in(request=request,
+                                       db=self.db,
+                                       session_model=self.site.Usersession,
+                                       user_model=self.site.User)
 
         view = re_match_view(path=request['path'], routes=self.routes, alt=bad_request)
 
         code, body = view(request=request, db=self.db, site=self.site)
 
-        start_response(code, [('Content-Type', 'text/html')])
-
-        return body
+        if code != "302":
+            start_response(code, [('Content-Type', 'text/html')])
+            return body
+        else:
+            start_response(code, [('Location', host_name+body)])
+            return [b'']
 
     def add_route(self, url):
         def wrapped(view):
@@ -40,6 +50,11 @@ class DebugApp(WebApp):
         print('>')
 
         request = compile_request(environ)
+
+        request['user'] = is_logged_in(request=request,
+                                       db=self.db,
+                                       session_model=self.site.Usersession,
+                                       user_model=self.site.User)
 
         view = re_match_view(path=request['path'], routes=self.routes, alt=bad_request)
 
@@ -58,15 +73,17 @@ class DebugApp(WebApp):
                                                   code,
                                                   end_color_code))
 
-        start_response(code, [('Content-Type', 'text/html')])
-
-        return body
+        if code != "302":
+            start_response(code, [('Content-Type', 'text/html')])
+            return body
+        else:
+            start_response(code, [('Location', host_name + body)])
+            return [b'']
 
 
 class FakeApp(WebApp):
 
     def __call__(self, environ, start_response):
-
         start_response("200 OK", [('Content-Type', 'text/html')])
 
         return [b"Hello from Fake"]

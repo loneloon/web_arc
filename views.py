@@ -39,9 +39,11 @@ class BaseView:
             print(e)
             return []
 
-    def response(self, appendix=None):
+    def response(self, request, appendix=None):
         object_list = {'title': self.title,
-                       'content': self.content}
+                       'content': self.content,
+                       'path': request['path'],
+                       'user': request['user']}
 
         if appendix is not None:
             object_list.update(appendix)
@@ -49,11 +51,14 @@ class BaseView:
         res = render(self.template, object_list=object_list)
         return '200 OK', [res]
 
+    def redirect_302(self, url):
+        return '302', url
+
     def get(self, request, db, site):
-        return self.response()
+        return self.response(request)
 
     def post(self, request, db, site):
-        return self.response()
+        return self.response(request)
 
 
 class Index(BaseView):
@@ -74,17 +79,17 @@ class Comments(BaseView):
         self.template = 'comments.html'
 
     def get(self, request, db, site):
-        comments_list = db.get_object(model=site.Comments)
+        comments_list = self.harvest_db_obj(db.get_object(model=site.Comments, all=True))
 
         object_list = {'title': self.title, 'content': self.content, 'comments': comments_list}
 
-        return self.response(object_list)
+        return self.response(request, object_list)
 
     def post(self, request, db, site):
         try:
             db.create_object(model=site.Comments,
                              **request['queries'])
-            return self.get(request, db, site)
+            return self.redirect_302("/{0}/".format(self.slice_path(request['path'])[0]))
         except Exception as e:
             print(e)
             return bad_request(request)
@@ -168,7 +173,7 @@ class CategoryView(BaseView):
             self.title = search_name
             path = '/{0}/'.format(self.slice_path(request['path'])[0])
             object_list = {'category': category[0], 'path': path}
-            return self.response(object_list)
+            return self.response(request, object_list)
         else:
             return bad_request(request)
 
@@ -189,7 +194,7 @@ class Categories(CategoryView):
         path = '/{0}/'.format(self.slice_path(request['path'])[0])
         object_list = {'categories': categories_list, 'path': path}
 
-        return self.response(object_list)
+        return self.response(request, object_list)
 
 
 class Course(BaseView):
@@ -210,14 +215,14 @@ class Course(BaseView):
             if course:
                 self.title = name
                 object_list = {'course': course}
-                return self.response(object_list)
+                return self.response(request, object_list)
             else:
                 return bad_request(request)
         else:
             return bad_request(request)
 
 
-class Register(BaseView):
+class SignUp(BaseView):
 
     def __init__(self):
         super().__init__()
@@ -233,12 +238,80 @@ class Register(BaseView):
         for field in site.User.__slots__:
             if field not in exclude:
                 fields.append(field)
-        token = request['cookie'][request['cookie'].index('=')+1:]
-        object_list = {'csrf_token': token, 'path': request['path'], 'form': fields}
 
-        return self.response(object_list)
+        object_list = {'path': request['path'], 'form': fields}
+
+        return self.response(request, object_list)
 
     def post(self, request, db, site):
 
-        print(request['queries'])
-        return bad_request(request)
+        fields = request['queries']
+
+        if fields['password1'] == fields['password2']:
+            fields['password'] = fields.pop('password1')
+            del fields['password2']
+
+            user = site.User.init_and_get_attrs(**fields)
+            try:
+                db.create_object(model=site.User, **user)
+            except Exception as e:
+                print(e)
+            return self.redirect_302('/')
+        else:
+            return bad_request(request)
+
+
+class SignIn(BaseView):
+
+    def __init__(self):
+        super().__init__()
+        self.title = "Sign Up"
+        self.content = 'This is the sign up page...'
+        self.template = 'login.html'
+
+    def get(self, request, db, site):
+
+        fields = ['login', 'password']
+
+        object_list = {'path': request['path'], 'form': fields}
+
+        return self.response(request, object_list)
+
+    def post(self, request, db, site):
+
+        fields = request['queries']
+        fields['name'] = fields.pop('login')
+        csrf_token = request['cookie']
+
+        user_input = site.User.init_and_get_attrs(**fields)
+        user = db.get_object(model=site.User, name=user_input['name'])
+
+        if user_input['password'] == user.password:
+
+            user_session = site.Usersession.init_and_get_attrs(user_fk=user.id, cookie=csrf_token)
+
+            current_session = db.get_object(model=site.Usersession, cookie=csrf_token)
+            if not current_session:
+                try:
+                    db.create_object(model=site.Usersession, **user_session)
+                except Exception as e:
+                    print(e)
+
+            return self.redirect_302('/')
+        else:
+            return bad_request(request)
+
+
+class SignOut(BaseView):
+
+    def get(self, request, db, site):
+
+        result = db.delete_object(model=site.Usersession, cookie=request['cookie'])
+
+        if result:
+            return self.redirect_302('/')
+        else:
+            return bad_request(request)
+
+    def post(self, request, db, site):
+        return self.get(request, db, site)

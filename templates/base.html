@@ -10,6 +10,14 @@
 {% block header_block %}
 <header><a href="/"><h1>{{object_list.title}}</h1></a></header>
 {% include "includes/inc__menu.html" %}
+{% if object_list.user %}
+<a href="#">{{ object_list.user }}</a> |
+    <a href="/signout/">Sign Out</a>
+{% else %}
+<a href="/signin/">Sign In</a> |
+    <a href="/signup/">Register</a>
+{% endif %}
+    <br>
 {% endblock %}
 
 <maintext>

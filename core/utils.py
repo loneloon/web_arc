@@ -49,6 +49,15 @@ def bad_request(request, site=None, db=None):
     return '404 BAD', [b'404 Bad Request, Buddy']
 
 
+def is_logged_in(request, session_model, user_model, db):
+    session = db.get_object(model=session_model, cookie=request['cookie'])
+
+    if session:
+        return db.get_object(model=user_model, id=session.user_fk).name
+    else:
+        return None
+
+
 def re_match_view(path, routes, alt):
     view = alt
     for key, value in routes.items():
@@ -62,8 +71,9 @@ def compile_request(environ):
     request = {
         'path': environ['PATH_INFO'],
         'method': environ['REQUEST_METHOD'],
-        'cookie': environ['HTTP_COOKIE']
+        'cookie': environ['HTTP_COOKIE'].split('=')[-1]
     }
+
     if request['method'] == 'GET':
         request['queries'] = parse_queries(environ['QUERY_STRING'])
     else:

@@ -6,5 +6,7 @@ url_paths = {
     '/online-courses/': Categories().view,
     "\/online-courses\/([a-zA-Z0-9])*\/": CategoryView().view,
     "\/online-courses\/([a-zA-Z0-9])*\/([a-zA-Z0-9])*\/": Course().view,
-    "/register/": Register().view
+    "/signup/": SignUp().view,
+    "/signin/": SignIn().view,
+    "/signout/": SignOut().view
 }

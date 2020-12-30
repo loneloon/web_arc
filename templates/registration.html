@@ -2,7 +2,7 @@
 
 
 {% block mid_block %}
-<form action="{{ object_list.path }}" method="post">
+<form action="{{ object_list.path }}" method="post" enctype="text/plain">
     {% for field in object_list.form %}
         {% if 'password' in field %}
             <div>
@@ -20,7 +20,6 @@
             </div>
         {% endif %}
     {% endfor %}
-    <input type="hidden" name="csrf_token" value="{{ object_list.csrf_token }}">
     <div>
       <button>Create</button>
     </div>

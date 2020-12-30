@@ -30,8 +30,12 @@ class WebsiteDB:
 
         for key in model_attrs:
 
-            if 'id' == key:
+            if key == 'id':
                 columns.append(Column(key, Integer, primary_key=True))
+            elif key == 'name' or \
+                    key == 'email' or \
+                    key == 'cookie':
+                columns.append(Column(key, String, unique=True))
             elif 'parent' in key:
                 columns.append(Column(key, Integer, default=None))
             elif 'is_' in key:
@@ -86,5 +90,7 @@ class WebsiteDB:
             self.session.delete(result)
 
             self.session.commit()
+            return True
         except Exception as e:
             print(e)
+            return False
