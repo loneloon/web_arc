@@ -14,6 +14,7 @@ class BaseView:
         else:
             return cls().post(request, db, site)
 
+
     def harvest_db_obj(self, db_response):
         result = None
         try:
@@ -29,6 +30,7 @@ class BaseView:
         finally:
             return result
 
+
     def slice_path(self, source):
         try:
             source = source.split('/')
@@ -38,6 +40,21 @@ class BaseView:
         except Exception as e:
             print(e)
             return []
+
+
+    def make_form_from_model(self, model):
+
+        items = []
+
+        try:
+            for key in model.__slots__:
+                if 'id' not in key and 'date' not in key and 'is_' not in key:
+                    items.append(key)
+        except Exception as e:
+            print(e)
+
+        return items
+
 
     def response(self, request, appendix=None):
         object_list = {'title': self.title,
@@ -50,6 +67,7 @@ class BaseView:
 
         res = render(self.template, object_list=object_list)
         return '200 OK', [res]
+
 
     def redirect_302(self, url):
         return '302', url
@@ -181,6 +199,61 @@ class CategoryView(BaseView):
         return self.get(request, db, site)
 
 
+class CategoryCreate(BaseView):
+
+    def __init__(self):
+        super().__init__()
+        self.title = "Create category"
+        self.content = ''
+        self.template = 'create_category.html'
+
+    def get(self, request, db, site):
+
+        form = self.make_form_from_model(site.Category)
+        categories = db.get_object(model=site.Category, all=True)
+        object_list = {'categories': categories, 'form': form}
+
+        return self.response(request, object_list)
+
+    def post(self, request, db, site):
+
+        fields = request['queries']
+
+        try:
+            db.create_object(model=site.Category, **fields)
+        except Exception as e:
+            print(e)
+        return self.redirect_302('/online-courses/')
+
+
+class CourseCreate(BaseView):
+
+    def __init__(self):
+        super().__init__()
+        self.title = "Create course"
+        self.content = ""
+        self.template = 'create_course.html'
+
+    def get(self, request, db, site):
+
+        form = self.make_form_from_model(site.Course)
+        categories = db.get_object(model=site.Category, all=True)
+        types = db.get_object(model=site.Coursetype, all=True)
+        object_list = {'categories': categories, 'types': types, 'form': form}
+
+        return self.response(request, object_list)
+
+    def post(self, request, db, site):
+
+        fields = request['queries']
+
+        try:
+            db.create_object(model=site.Course, **fields)
+        except Exception as e:
+            print(e)
+        return self.redirect_302('/online-courses/')
+
+
 class Categories(CategoryView):
 
     def __init__(self):
@@ -232,12 +305,7 @@ class SignUp(BaseView):
 
     def get(self, request, db, site):
 
-        fields = []
-        exclude = ('id', 'is_active', 'registration_date', 'is_superuser')
-
-        for field in site.User.__slots__:
-            if field not in exclude:
-                fields.append(field)
+        fields = self.make_form_from_model(site.User)
 
         object_list = {'path': request['path'], 'form': fields}
 
