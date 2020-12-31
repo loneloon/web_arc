@@ -1,0 +1,33 @@
+{% extends 'base.html' %}
+
+
+{% block mid_block %}
+
+  <form action="/create-category/" method="post" enctype="text/plain">
+    {% for field in object_list.form %}
+      {% if field == 'parent' %}
+        {% if object_list.categories %}
+            <div>
+          <label>Parent category:</label>
+          <select name="parent">
+          {% for category in object_list.categories %}
+            <option value="{{ category.id }}">{{ category.name }}</option>
+          {% endfor %}
+          </select>
+            </div>
+        {% else %}
+          <input type="hidden" name="parent" value=0>
+        {% endif %}
+      {% else %}
+      <div>
+        <label>{{ field.capitalize() }}</label>
+        <input name="{{ field }}" value="">
+      </div>
+      {% endif %}
+    {% endfor %}
+    <div>
+      <button>Create</button>
+    </div>
+  </form>
+
+{% endblock %}

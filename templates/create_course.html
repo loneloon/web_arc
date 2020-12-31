@@ -1,0 +1,42 @@
+{% extends 'base.html' %}
+
+
+{% block mid_block %}
+
+  <form action="/create-course/" method="post" enctype="text/plain">
+    {% for field in object_list.form %}
+      {% if field == 'category_fk' %}
+        {% if object_list.categories %}
+            <div>
+          <label>Category:</label>
+          <select name="category_fk">
+          {% for category in object_list.categories %}
+            <option value="{{ category.id }}">{{ category.name }}</option>
+          {% endfor %}
+          </select>
+            </div>
+        {% endif %}
+      {% elif field == 'coursetype_fk' %}
+        {% if object_list.types %}
+            <div>
+          <label>Type:</label>
+          <select name="coursetype_fk">
+          {% for type in object_list.types %}
+            <option value="{{ type.id }}">{{ type.name }}</option>
+          {% endfor %}
+          </select>
+            </div>
+        {% endif %}
+      {% else %}
+      <div>
+        <label>{{ field.capitalize() }}</label>
+        <input name="{{ field }}" value="">
+      </div>
+      {% endif %}
+    {% endfor %}
+    <div>
+      <button>Create</button>
+    </div>
+  </form>
+
+{% endblock %}
