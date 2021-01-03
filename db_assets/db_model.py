@@ -32,8 +32,7 @@ class WebsiteDB:
 
             if key == 'id':
                 columns.append(Column(key, Integer, primary_key=True))
-            elif key == 'name' or \
-                    key == 'email' or \
+            elif key == 'email' or \
                     key == 'cookie':
                 columns.append(Column(key, String, unique=True))
             elif 'parent' in key:

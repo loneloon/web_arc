@@ -6,16 +6,17 @@ import hashlib
 class TrainingSite:
 
     class Category(ModelMixin):
-        __slots__ = 'id', 'name', 'parent', 'description'
+        __slots__ = 'id', 'name', 'parent', 'description', 'is_active'
 
         def __init__(self, name, parent=None, description=None):
             self.id = None
             self.name = name
             self.parent = parent
             self.description = description
+            self.is_active = True
 
     class Course(ModelMixin):
-        __slots__ = 'id', 'name', 'coursetype_fk', 'category_fk', 'description'
+        __slots__ = 'id', 'name', 'coursetype_fk', 'category_fk', 'description', 'is_active'
 
         def __init__(self, name, coursetype_fk, category_fk, description=None):
             self.id = None
@@ -23,6 +24,7 @@ class TrainingSite:
             self.coursetype_fk = coursetype_fk
             self.category_fk = category_fk
             self.description = description
+            self.is_active = True
 
     class Coursetype(ModelMixin):
         __slots__ = 'id', 'name'
@@ -54,12 +56,13 @@ class TrainingSite:
             self.user_fk = user_fk
 
     class Student(ModelMixin):
-        __slots__ = 'id', 'user_fk', 'course_fk'
+        __slots__ = 'id', 'user_fk', 'course_fk', 'is_active'
 
         def __init__(self, user_fk, course_fk):
             self.id = None
             self.user_fk = user_fk
             self.course_fk = course_fk
+            self.is_active = True
 
     class Curator(Student):
         pass

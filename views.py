@@ -140,8 +140,7 @@ class CategoryView(BaseView):
                             for parent in obj_list:
                                 if parent['id'] == obj['parent']:
                                     parent['children'].append(obj)
-                                    del obj_list[obj_list.index(obj)]
-                            obj['parent'] = 0
+                            del obj_list[obj_list.index(obj)]
                 return obj_list
             else:
                 return None
@@ -154,7 +153,7 @@ class CategoryView(BaseView):
             for cat in cat_list:
                 try:
                     cat['courses'] = self.harvest_db_obj(
-                        db.get_object(model=site.Course, all=True, category_fk=cat['id']))
+                        db.get_object(model=site.Course, all=True, category_fk=cat['id'], is_active=True))
                 except Exception as e:
                     print(e)
                     cat['courses'] = None
@@ -164,11 +163,14 @@ class CategoryView(BaseView):
 
     def get_categories(self, db, site, name=None):
         result = self.harvest_db_obj(
-            db.get_object(model=site.Category, all=True))
+            db.get_object(model=site.Category, all=True, is_active=True))
         if name is not None:
-            top_id = int(db.get_object(model=site.Category, name=name).id)
-            result = list(obj for obj in result if int(obj['id']) >= top_id)
-            print(result)
+            try:
+                top_id = int(db.get_object(model=site.Category, name=name).id)
+                result = list(obj for obj in result if int(obj['id']) >= top_id)
+            except Exception as e:
+                print(e)
+                result = None
 
         result = self.pack_children(
             self.fetch_courses(
@@ -210,7 +212,7 @@ class CategoryCreate(BaseView):
     def get(self, request, db, site):
 
         form = self.make_form_from_model(site.Category)
-        categories = db.get_object(model=site.Category, all=True)
+        categories = db.get_object(model=site.Category, all=True, is_active=True)
         object_list = {'categories': categories, 'form': form}
 
         return self.response(request, object_list)
@@ -237,7 +239,7 @@ class CourseCreate(BaseView):
     def get(self, request, db, site):
 
         form = self.make_form_from_model(site.Course)
-        categories = db.get_object(model=site.Category, all=True)
+        categories = db.get_object(model=site.Category, all=True, is_active=True)
         types = db.get_object(model=site.Coursetype, all=True)
         object_list = {'categories': categories, 'types': types, 'form': form}
 
@@ -281,17 +283,21 @@ class Course(BaseView):
     def get(self, request, db, site):
         path = self.slice_path(request['path'])
         parent, name = path[1], path[2]
-        link_is_valid = db.get_object(model=site.Category, name=parent).id == \
-                        db.get_object(model=site.Course, name=name).category_fk
-        if link_is_valid:
-            course = self.harvest_db_obj(db.get_object(model=site.Course, name=name))
-            if course:
-                self.title = name
-                object_list = {'course': course}
-                return self.response(request, object_list)
+        try:
+            link_is_valid = db.get_object(model=site.Category, name=parent, is_active=True).id == \
+                            db.get_object(model=site.Course, name=name, is_active=True).category_fk
+            if link_is_valid:
+                course = self.harvest_db_obj(db.get_object(model=site.Course, name=name, is_active=True))
+                if course:
+                    self.title = name
+                    object_list = {'course': course}
+                    return self.response(request, object_list)
+                else:
+                    return bad_request(request)
             else:
                 return bad_request(request)
-        else:
+        except Exception as e:
+            print(e)
             return bad_request(request)
 
 
