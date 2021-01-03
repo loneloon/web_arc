@@ -1,0 +1,26 @@
+{% extends 'base.html' %}
+
+{% block mid_block %}
+    {% if object_list.db_items %}
+        <table>
+            <thead>
+            {% if object_list.form %}
+                {% for field in object_list.form %}
+                <th>{{ field }}</th>
+                {% endfor %}
+            {% endif %}
+            </thead>
+            {% for item in object_list.db_items %}
+                <tr>
+                    {% if object_list.form %}
+                        {% for field in object_list.form %}
+                        <td>{{ item[field] }}</td>
+                        {% endfor %}
+                    {% endif %}
+                </tr>
+            {% endfor %}
+        </table>
+    {% else %}
+        {{ object_list.content }}
+    {% endif %}
+{% endblock %}

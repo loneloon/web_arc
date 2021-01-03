@@ -53,7 +53,9 @@ def is_logged_in(request, session_model, user_model, db):
     session = db.get_object(model=session_model, cookie=request['cookie'])
 
     if session:
-        return db.get_object(model=user_model, id=session.user_fk).name
+        user = db.get_object(model=user_model, id=session.user_fk)
+        if user:
+            return {'name': user.name, 'super': user.is_superuser}
     else:
         return None
 

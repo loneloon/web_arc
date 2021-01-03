@@ -36,19 +36,26 @@ class BaseView:
             source = source.split('/')
             while '' in source:
                 source.remove('')
-                return source
+            return source
         except Exception as e:
             print(e)
             return []
 
 
-    def make_form_from_model(self, model):
+    def make_form_from_model(self, model, exclude=None):
 
         items = []
 
         try:
             for key in model.__slots__:
-                if 'id' not in key and 'date' not in key and 'is_' not in key:
+                included = True
+
+                if exclude is not None:
+                    for tag in exclude:
+                        if tag in key:
+                            included = False
+
+                if included:
                     items.append(key)
         except Exception as e:
             print(e)
@@ -211,7 +218,9 @@ class CategoryCreate(BaseView):
 
     def get(self, request, db, site):
 
-        form = self.make_form_from_model(site.Category)
+        exclude = ['id', 'is_']
+
+        form = self.make_form_from_model(site.Category, exclude=exclude)
         categories = db.get_object(model=site.Category, all=True, is_active=True)
         object_list = {'categories': categories, 'form': form}
 
@@ -238,7 +247,9 @@ class CourseCreate(BaseView):
 
     def get(self, request, db, site):
 
-        form = self.make_form_from_model(site.Course)
+        exclude = ['id', 'is_']
+
+        form = self.make_form_from_model(site.Course, exclude=exclude)
         categories = db.get_object(model=site.Category, all=True, is_active=True)
         types = db.get_object(model=site.Coursetype, all=True)
         object_list = {'categories': categories, 'types': types, 'form': form}
@@ -311,7 +322,9 @@ class SignUp(BaseView):
 
     def get(self, request, db, site):
 
-        fields = self.make_form_from_model(site.User)
+        exclude = ['id', 'is_', '_date']
+
+        fields = self.make_form_from_model(site.User, exclude=exclude)
 
         object_list = {'path': request['path'], 'form': fields}
 
@@ -386,6 +399,58 @@ class SignOut(BaseView):
             return self.redirect_302('/')
         else:
             return bad_request(request)
+
+    def post(self, request, db, site):
+        return self.get(request, db, site)
+
+
+class AdminView(BaseView):
+
+    def __init__(self):
+        super().__init__()
+        self.title = "Admin"
+        self.content = ''
+        self.template = 'admin.html'
+
+    def get(self, request, db, site):
+
+        if request['user']:
+            if request['user']['super']:
+                page = self.slice_path(request['path'])
+
+                print(page)
+
+                if len(page) > 1:
+                    if page[1] == 'users':
+                        model = site.User
+                    elif page[1] == 'categories':
+                        model = site.Category
+                    elif page[1] == 'courses':
+                        model = site.Course
+                    else:
+                        model = None
+
+                    if model is not None:
+                        self.content = 'A list of entries will be displayed here...'
+                        items = self.harvest_db_obj(db.get_object(model=model, all=True))
+
+                        exclude = ['password']
+                        form = self.make_form_from_model(model=model, exclude=exclude)
+                        return self.response(request, appendix={'db_items': items, 'form': form})
+                    else:
+                        return bad_request(request)
+                else:
+                    self.content = f'<h3>Edit entries:</h3>' \
+                                   f'<ul>'\
+                                   f'<li><a href="{request["path"]}users/">Users</a></li>' \
+                                   f'<li><a href="{request["path"]}categories/">Categories</a></li>' \
+                                   f'<li><a href="{request["path"]}courses/">Courses</a></li>'\
+                                   f'</ul>'
+                    return self.response(request)
+            else:
+                return self.redirect_302('/')
+        else:
+            return self.redirect_302('/')
 
     def post(self, request, db, site):
         return self.get(request, db, site)
