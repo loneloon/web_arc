@@ -1,21 +1,40 @@
 {% extends 'base.html' %}
 
 {% block mid_block %}
+    <style type="text/css">
+    .tg  {border-collapse:collapse;border-spacing:0;}
+    .tg td{border-color:black;border-style:solid;border-width:1px;font-family:Arial, sans-serif;font-size:14px;
+      overflow:hidden;padding:10px 5px;word-break:normal;}
+    .tg th{border-color:black;border-style:solid;border-width:1px;font-family:Arial, sans-serif;font-size:14px;
+      font-weight:normal;overflow:hidden;padding:10px 5px;word-break:normal;}
+    .tg .tg-0pky{border-color:inherit;text-align:left;vertical-align:top}
+    </style>
+
+    {% if object_list.path != '/admin/' %}<a href="/admin/">Back</a>{% endif %}
     {% if object_list.db_items %}
-        <table>
+        <table class="tg">
             <thead>
             {% if object_list.form %}
                 {% for field in object_list.form %}
-                <th>{{ field }}</th>
+                <th class="tg-0pky">{{ field }}</th>
                 {% endfor %}
+                <th class="tg-0pky"></th>
+                <th class="tg-0pky"></th>
             {% endif %}
             </thead>
             {% for item in object_list.db_items %}
                 <tr>
                     {% if object_list.form %}
+                    <form action="{{ object_list.path }}save/" method="post" enctype="text/plain">
                         {% for field in object_list.form %}
-                        <td>{{ item[field] }}</td>
+                        <td class="tg-0pky"><input name="{{ field }}" value="{{ item[field] }}"></td>
                         {% endfor %}
+                        <td class="tg-0pky"><button>Save</button></td>
+                    </form>
+                    <form action="{{ object_list.path }}delete/" method="post" enctype="text/plain">
+                        <input type="hidden" name="id" value="{{ item.id }}">
+                        <td class="tg-0pky"><button>Delete</button></td>
+                    </form>
                     {% endif %}
                 </tr>
             {% endfor %}

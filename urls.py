@@ -13,4 +13,5 @@ url_paths = {
     "/signout/": SignOut().view,
     "\/admin\/([a-zA-Z0-9])*\/": AdminView().view,
     "\/admin\/": AdminView().view,
+    "\/admin\/([a-zA-Z0-9])*\/([a-z])*\/": AdminView().view
 }

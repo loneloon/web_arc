@@ -83,6 +83,15 @@ class WebsiteDB:
             print(e)
             return None
 
+    def update_object(self, instance):
+        try:
+            self.session.add(instance)
+            self.session.commit()
+            return True
+        except Exception as e:
+            print(e)
+            return False
+
     def delete_object(self, model, **kwargs):
         try:
             result = self.get_object(model, **kwargs)

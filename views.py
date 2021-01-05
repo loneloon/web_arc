@@ -418,8 +418,6 @@ class AdminView(BaseView):
             if request['user']['super']:
                 page = self.slice_path(request['path'])
 
-                print(page)
-
                 if len(page) > 1:
                     if page[1] == 'users':
                         model = site.User
@@ -453,4 +451,61 @@ class AdminView(BaseView):
             return self.redirect_302('/')
 
     def post(self, request, db, site):
-        return self.get(request, db, site)
+        orig_path = self.slice_path(request['path'])[:-1]
+        fields = request['queries']
+
+        if len(orig_path) == 2:
+            action = self.slice_path(request['path'])[-1]
+        else:
+            action = None
+
+        if orig_path[1] == 'users':
+            model = site.User
+        elif orig_path[1] == 'categories':
+            model = site.Category
+        elif orig_path[1] == 'courses':
+            model = site.Course
+        else:
+            model = None
+
+        if action == 'save':
+            for key, value in fields.items():
+                if value == 'True':
+                    fields[key] = True
+                elif value == 'False':
+                    fields[key] = False
+
+            if model:
+                instance = db.get_object(model=model, id=fields['id'])
+
+                try:
+                    for key, value in fields.items():
+                        if instance.__getattribute__(key) != value:
+                            instance.__setattr__(key, value)
+                except Exception as e:
+                    print(e)
+                finally:
+                    result = db.update_object(instance)
+
+                    if result:
+                        print('Object update successful.')
+                        return self.redirect_302('/{0}/{1}/'.format(orig_path[0], orig_path[1]))
+                    else:
+                        print('Update unsuccessful.')
+                        return self.redirect_302('/{0}/{1}/'.format(orig_path[0], orig_path[1]))
+            else:
+                return bad_request(request)
+        elif action == 'delete':
+            print(request['queries'])
+            if model:
+                result = db.delete_object(model=model, id=fields['id'])
+                if result:
+                    print('Object deletion successful.')
+                    return self.redirect_302('/{0}/{1}/'.format(orig_path[0], orig_path[1]))
+                else:
+                    print('Deletion unsuccessful.')
+                    return self.redirect_302('/{0}/{1}/'.format(orig_path[0], orig_path[1]))
+            else:
+                return bad_request(request)
+        else:
+            return bad_request(request)
