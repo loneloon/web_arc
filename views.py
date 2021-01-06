@@ -14,22 +14,25 @@ class BaseView:
         else:
             return cls().post(request, db, site)
 
-
     def harvest_db_obj(self, db_response):
         result = None
         try:
-            if db_response is not None and isinstance(db_response, list or tuple):
-                result = list(dict((k, v)
-                                   for k, v in obj.__dict__.items()
-                                   if not k.startswith('_'))
-                              for obj in db_response)
-            elif not isinstance(db_response, list or tuple):
-                result = db_response
+            if db_response is not None:
+                if isinstance(db_response, list or tuple):
+                    result = list(dict((k, v)
+                                       for k, v in obj.__dict__.items()
+                                       if not k.startswith('_'))
+                                  for obj in db_response)
+                else:
+                    result = dict((k, v)
+                                  for k, v in db_response.__dict__.items()
+                                  if not k.startswith('_'))
+            else:
+                result = None
         except Exception as e:
             print(e)
         finally:
             return result
-
 
     def slice_path(self, source):
         try:
@@ -41,7 +44,6 @@ class BaseView:
             print(e)
             return []
 
-
     def make_form_from_model(self, model, exclude=None):
 
         items = []
@@ -52,16 +54,18 @@ class BaseView:
 
                 if exclude is not None:
                     for tag in exclude:
-                        if tag in key:
-                            included = False
-
+                        if '_' in tag:
+                            if tag in key:
+                                included = False
+                        else:
+                            if tag == key:
+                                included = False
                 if included:
                     items.append(key)
         except Exception as e:
             print(e)
 
         return items
-
 
     def response(self, request, appendix=None):
         object_list = {'title': self.title,
@@ -74,7 +78,6 @@ class BaseView:
 
         res = render(self.template, object_list=object_list)
         return '200 OK', [res]
-
 
     def redirect_302(self, url):
         return '302', url
@@ -142,7 +145,7 @@ class CategoryView(BaseView):
                 while not no_orphans:
                     no_orphans = True
                     for obj in obj_list:
-                        if obj['parent'] != 0:
+                        if obj['parent'] != 0 and obj != obj_list[-1]:
                             no_orphans = False
                             for parent in obj_list:
                                 if parent['id'] == obj['parent']:
@@ -153,6 +156,17 @@ class CategoryView(BaseView):
                 return None
         except Exception as e:
             print(e)
+            return None
+
+    def get_parent(self, db, site, name):
+        parent_id = db.get_object(model=site.Category, name=name).parent
+        parent = db.get_object(model=site.Category, id=parent_id)
+        if parent_id != 0 and parent:
+            if int(parent.parent) != 0:
+                return self.get_parent(db, site, parent.name)
+            else:
+                return parent
+        else:
             return None
 
     def fetch_courses(self, db, site, cat_list):
@@ -171,6 +185,7 @@ class CategoryView(BaseView):
     def get_categories(self, db, site, name=None):
         result = self.harvest_db_obj(
             db.get_object(model=site.Category, all=True, is_active=True))
+
         if name is not None:
             try:
                 top_id = int(db.get_object(model=site.Category, name=name).id)
@@ -186,6 +201,12 @@ class CategoryView(BaseView):
         try:
             if name is not None:
                 result = list(obj for obj in result if obj['name'] == name)
+
+                parent = self.get_parent(db, site, name)
+                if parent is not None:
+                    if not parent.is_active:
+                        result = []
+
         except Exception as e:
             print(e)
             result = None
@@ -321,14 +342,16 @@ class SignUp(BaseView):
         self.template = 'registration.html'
 
     def get(self, request, db, site):
+        if not request['user']:
+            exclude = ['id', 'is_', '_date']
 
-        exclude = ['id', 'is_', '_date']
+            fields = self.make_form_from_model(site.User, exclude=exclude)
 
-        fields = self.make_form_from_model(site.User, exclude=exclude)
+            object_list = {'path': request['path'], 'form': fields}
 
-        object_list = {'path': request['path'], 'form': fields}
-
-        return self.response(request, object_list)
+            return self.response(request, object_list)
+        else:
+            return self.redirect_302('/')
 
     def post(self, request, db, site):
 
@@ -352,17 +375,19 @@ class SignIn(BaseView):
 
     def __init__(self):
         super().__init__()
-        self.title = "Sign Up"
+        self.title = "Sign In"
         self.content = 'This is the sign up page...'
         self.template = 'login.html'
 
     def get(self, request, db, site):
+        if not request['user']:
+            fields = ['login', 'password']
 
-        fields = ['login', 'password']
+            object_list = {'path': request['path'], 'form': fields}
 
-        object_list = {'path': request['path'], 'form': fields}
-
-        return self.response(request, object_list)
+            return self.response(request, object_list)
+        else:
+            return self.redirect_302('/')
 
     def post(self, request, db, site):
 
@@ -439,10 +464,10 @@ class AdminView(BaseView):
                         return bad_request(request)
                 else:
                     self.content = f'<h3>Edit entries:</h3>' \
-                                   f'<ul>'\
+                                   f'<ul>' \
                                    f'<li><a href="{request["path"]}users/">Users</a></li>' \
                                    f'<li><a href="{request["path"]}categories/">Categories</a></li>' \
-                                   f'<li><a href="{request["path"]}courses/">Courses</a></li>'\
+                                   f'<li><a href="{request["path"]}courses/">Courses</a></li>' \
                                    f'</ul>'
                     return self.response(request)
             else:
@@ -480,8 +505,9 @@ class AdminView(BaseView):
 
                 try:
                     for key, value in fields.items():
-                        if instance.__getattribute__(key) != value:
-                            instance.__setattr__(key, value)
+                        if "_date" not in key:
+                            if instance.__getattribute__(key) != value:
+                                instance.__setattr__(key, value)
                 except Exception as e:
                     print(e)
                 finally:
@@ -507,5 +533,74 @@ class AdminView(BaseView):
                     return self.redirect_302('/{0}/{1}/'.format(orig_path[0], orig_path[1]))
             else:
                 return bad_request(request)
+        else:
+            return bad_request(request)
+
+
+class UserView(BaseView):
+
+    def __init__(self):
+        super().__init__()
+        self.title = ""
+        self.content = ""
+        self.template = "user.html"
+
+    def get(self, request, db, site):
+        exclude = ['id', 'is_']
+
+        if 'edit' not in self.slice_path(request['path']):
+            exclude.append('password')
+
+        form = self.make_form_from_model(model=site.User, exclude=exclude)
+        user_details = self.harvest_db_obj(db.get_object(model=site.User,
+                                                         name=request['user']['name']))
+        return self.response(request, appendix={'user_details': user_details, 'form': form})
+
+    def post(self, request, db, site):
+        orig_path = self.slice_path(request['path'])
+        fields = request['queries']
+
+        if 'edit' == orig_path[1]:
+            user = db.get_object(model=site.User, name=request['user']['name'])
+            if user:
+                if 'pass' in orig_path[-1]:
+                    user_shell = site.User.init_and_get_attrs(name=fields['name'], password=fields['pass_check'])
+
+                    if user_shell['password'] == user.password:
+                        del user_shell
+
+                        if fields['pass1'] != "" and (fields['pass1'] == fields['pass2']):
+                            fields['password'] = site.User.init_and_get_attrs(name=fields['name'],
+                                                                              password=fields['pass1'])['password']
+                        else:
+                            print("Passwords don't match!")
+                            return self.redirect_302('/{0}/{1}/{2}/'.format(*orig_path))
+                    else:
+                        print('Wrong password!')
+                        return self.redirect_302('/{0}/{1}/{2}/'.format(*orig_path))
+
+                    del fields['pass_check']
+                    del fields['pass1']
+                    del fields['pass2']
+
+            else:
+                return bad_request(request)
+
+            try:
+                for key, value in fields.items():
+                    if "_date" not in key:
+                        if user.__getattribute__(key) != value:
+                            user.__setattr__(key, value)
+            except Exception as e:
+                print(e)
+            finally:
+                result = db.update_object(user)
+
+                if result:
+                    print('Object update successful.')
+                    return self.redirect_302('/{0}/'.format(orig_path[0]))
+                else:
+                    print('Update unsuccessful.')
+                    return self.redirect_302('/{0}/{1}/'.format(orig_path[0], orig_path[1]))
         else:
             return bad_request(request)

@@ -27,7 +27,20 @@
                     {% if object_list.form %}
                     <form action="{{ object_list.path }}save/" method="post" enctype="text/plain">
                         {% for field in object_list.form %}
-                        <td class="tg-0pky"><input name="{{ field }}" value="{{ item[field] }}"></td>
+                            {% if "is_" in field %}
+                                <td class="tg-0pky">
+                                    <select name="{{ field }}">
+                                        <option value="True" {% if item[field] %}selected{% endif %}>Yes</option>
+                                        <option value="False" {% if not item[field] %}selected{% endif %}>No</option>
+                                    </select>
+                                </td>
+                            {% elif "_date" in field %}
+                                <td class="tg-0pky">
+                                    <label>{{ item[field] }}</label>
+                                </td>
+                            {% else %}
+                                <td class="tg-0pky"><input name="{{ field }}" value="{{ item[field] }}"></td>
+                            {% endif %}
                         {% endfor %}
                         <td class="tg-0pky"><button>Save</button></td>
                     </form>
