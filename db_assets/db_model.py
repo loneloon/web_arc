@@ -2,12 +2,11 @@ from sqlalchemy import create_engine, Table, Column, Integer, \
     String, MetaData, ForeignKey, DateTime, Boolean
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
-from models import *
 
 
 class WebsiteDB:
 
-    def __init__(self, db_name, model_class):
+    def __init__(self, db_name, model_class, preload=None):
         self.db_engine = create_engine(db_name, echo=False, pool_recycle=7200)
 
         self.metadata = MetaData()
@@ -23,6 +22,11 @@ class WebsiteDB:
         Session = sessionmaker(bind=self.db_engine)
         self.session = Session()
         self.session.commit()
+
+        self.preload = True if preload else False
+
+        if self.preload:
+            self.preload_objects()
 
     @staticmethod
     def compose_table(model_name, model_attrs, metadata):
@@ -56,13 +60,19 @@ class WebsiteDB:
         self.__setattr__(
             model.__name__.lower() + "_class",
             type(model.__name__.lower(), (class_base,),
-                 {"__table__": self.__getattribute__(model.__name__.lower() + '_table')}))
+                 {"__table__": self.__getattribute__(model.__name__.lower() + '_table'),
+                  "preloaded": []}))
 
     def create_object(self, model, **kwargs):
         try:
-            obj = self.__getattribute__(model.__name__.lower()+'_class')(**kwargs)
-            self.session.add(obj)
+            obj_model = self.__getattribute__(model.__name__.lower() + '_class')
+
+            instance = obj_model(**kwargs)
+            self.session.add(instance)
             self.session.commit()
+
+            if self.preload:
+                obj_model.preloaded.append(self.session.query(obj_model).filter_by(**kwargs).first())
             return True
         except Exception as e:
             print(e)
@@ -102,3 +112,19 @@ class WebsiteDB:
         except Exception as e:
             print(e)
             return False
+
+    def preload_objects(self):
+        for key, val in self.__dict__.items():
+            if key.endswith('_class'):
+                val.preloaded.extend(self.session.query(val).all())
+
+    def get_preloaded(self, model):
+        result = []
+
+        try:
+            obj_model = self.__getattribute__(model.__name__.lower() + '_class')
+            result = obj_model.preloaded
+        except Exception as e:
+            print(e)
+
+        return result
