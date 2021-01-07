@@ -10,6 +10,9 @@
             </div>
     {% endfor %}
     <div>
+        {% if object_list.next %}
+        <input type="hidden" name="next_url" value="{{ object_list.next }}" />
+        {% endif %}
       <button>Submit</button>
     </div>
   </form>

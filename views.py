@@ -14,59 +14,6 @@ class BaseView:
         else:
             return cls().post(request, db, site)
 
-    def harvest_db_obj(self, db_response):
-        result = None
-        try:
-            if db_response is not None:
-                if isinstance(db_response, list or tuple):
-                    result = list(dict((k, v)
-                                       for k, v in obj.__dict__.items()
-                                       if not k.startswith('_'))
-                                  for obj in db_response)
-                else:
-                    result = dict((k, v)
-                                  for k, v in db_response.__dict__.items()
-                                  if not k.startswith('_'))
-            else:
-                result = None
-        except Exception as e:
-            print(e)
-        finally:
-            return result
-
-    def slice_path(self, source):
-        try:
-            source = source.split('/')
-            while '' in source:
-                source.remove('')
-            return source
-        except Exception as e:
-            print(e)
-            return []
-
-    def make_form_from_model(self, model, exclude=None):
-
-        items = []
-
-        try:
-            for key in model.__slots__:
-                included = True
-
-                if exclude is not None:
-                    for tag in exclude:
-                        if '_' in tag:
-                            if tag in key:
-                                included = False
-                        else:
-                            if tag == key:
-                                included = False
-                if included:
-                    items.append(key)
-        except Exception as e:
-            print(e)
-
-        return items
-
     def response(self, request, appendix=None):
         object_list = {'title': self.title,
                        'content': self.content,
@@ -76,11 +23,16 @@ class BaseView:
         if appendix is not None:
             object_list.update(appendix)
 
+        if request['next']:
+            if request['path'] == signin_link:
+                object_list['next'] = request.pop('next')
+            elif request['next'] == signin_link:
+                return redirect_302(f"{request.pop('next')}?next={request['path']}")
+            else:
+                return redirect_302(f"{request.pop('next')}")
+
         res = render(self.template, object_list=object_list)
         return '200 OK', [res]
-
-    def redirect_302(self, url):
-        return '302', url
 
     def get(self, request, db, site):
         return self.response(request)
@@ -107,7 +59,7 @@ class Comments(BaseView):
         self.template = 'comments.html'
 
     def get(self, request, db, site):
-        comments_list = self.harvest_db_obj(db.get_object(model=site.Comments, all=True))
+        comments_list = harvest_db_obj(db.get_object(model=site.Comments, all=True))
 
         object_list = {'title': self.title, 'content': self.content, 'comments': comments_list}
 
@@ -117,7 +69,7 @@ class Comments(BaseView):
         try:
             db.create_object(model=site.Comments,
                              **request['queries'])
-            return self.redirect_302("/{0}/".format(self.slice_path(request['path'])[0]))
+            return redirect_302("/{0}/".format(slice_path(request['path'])[0]))
         except Exception as e:
             print(e)
             return bad_request(request)
@@ -173,7 +125,7 @@ class CategoryView(BaseView):
         if cat_list:
             for cat in cat_list:
                 try:
-                    cat['courses'] = self.harvest_db_obj(
+                    cat['courses'] = harvest_db_obj(
                         db.get_object(model=site.Course, all=True, category_fk=cat['id'], is_active=True))
                 except Exception as e:
                     print(e)
@@ -183,7 +135,7 @@ class CategoryView(BaseView):
             return None
 
     def get_categories(self, db, site, name=None):
-        result = self.harvest_db_obj(
+        result = harvest_db_obj(
             db.get_object(model=site.Category, all=True, is_active=True))
 
         if name is not None:
@@ -213,13 +165,13 @@ class CategoryView(BaseView):
         return result
 
     def get(self, request, db, site):
-        search_name = self.slice_path(request['path'])[1]
+        search_name = slice_path(request['path'])[1]
 
         category = self.get_categories(db, site, name=search_name)
 
         if category:
             self.title = search_name
-            path = '/{0}/'.format(self.slice_path(request['path'])[0])
+            path = '/{0}/'.format(slice_path(request['path'])[0])
             object_list = {'category': category[0], 'path': path}
             return self.response(request, object_list)
         else:
@@ -241,7 +193,7 @@ class CategoryCreate(BaseView):
 
         exclude = ['id', 'is_']
 
-        form = self.make_form_from_model(site.Category, exclude=exclude)
+        form = make_form_from_model(site.Category, exclude=exclude)
         categories = db.get_object(model=site.Category, all=True, is_active=True)
         object_list = {'categories': categories, 'form': form}
 
@@ -255,7 +207,7 @@ class CategoryCreate(BaseView):
             db.create_object(model=site.Category, **fields)
         except Exception as e:
             print(e)
-        return self.redirect_302('/online-courses/')
+        return redirect_302('/online-courses/')
 
 
 class CourseCreate(BaseView):
@@ -270,7 +222,7 @@ class CourseCreate(BaseView):
 
         exclude = ['id', 'is_']
 
-        form = self.make_form_from_model(site.Course, exclude=exclude)
+        form = make_form_from_model(site.Course, exclude=exclude)
         categories = db.get_object(model=site.Category, all=True, is_active=True)
         types = db.get_object(model=site.Coursetype, all=True)
         object_list = {'categories': categories, 'types': types, 'form': form}
@@ -285,7 +237,7 @@ class CourseCreate(BaseView):
             db.create_object(model=site.Course, **fields)
         except Exception as e:
             print(e)
-        return self.redirect_302('/online-courses/')
+        return redirect_302('/online-courses/')
 
 
 class Categories(CategoryView):
@@ -298,7 +250,7 @@ class Categories(CategoryView):
 
     def get(self, request, db, site):
         categories_list = self.get_categories(db, site)
-        path = '/{0}/'.format(self.slice_path(request['path'])[0])
+        path = '/{0}/'.format(slice_path(request['path'])[0])
         object_list = {'categories': categories_list, 'path': path}
 
         return self.response(request, object_list)
@@ -312,14 +264,15 @@ class Course(BaseView):
         self.content = 'Short description of the course'
         self.template = 'inspect.html'
 
+    @login_required
     def get(self, request, db, site):
-        path = self.slice_path(request['path'])
+        path = slice_path(request['path'])
         parent, name = path[1], path[2]
         try:
             link_is_valid = db.get_object(model=site.Category, name=parent, is_active=True).id == \
                             db.get_object(model=site.Course, name=name, is_active=True).category_fk
             if link_is_valid:
-                course = self.harvest_db_obj(db.get_object(model=site.Course, name=name, is_active=True))
+                course = harvest_db_obj(db.get_object(model=site.Course, name=name, is_active=True))
                 if course:
                     self.title = name
                     object_list = {'course': course}
@@ -345,13 +298,13 @@ class SignUp(BaseView):
         if not request['user']:
             exclude = ['id', 'is_', '_date']
 
-            fields = self.make_form_from_model(site.User, exclude=exclude)
+            fields = make_form_from_model(site.User, exclude=exclude)
 
             object_list = {'path': request['path'], 'form': fields}
 
             return self.response(request, object_list)
         else:
-            return self.redirect_302('/')
+            return redirect_302('/')
 
     def post(self, request, db, site):
 
@@ -366,7 +319,7 @@ class SignUp(BaseView):
                 db.create_object(model=site.User, **user)
             except Exception as e:
                 print(e)
-            return self.redirect_302('/')
+            return redirect_302('/')
         else:
             return bad_request(request)
 
@@ -387,9 +340,13 @@ class SignIn(BaseView):
 
             return self.response(request, object_list)
         else:
-            return self.redirect_302('/')
+            return redirect_302('/')
 
     def post(self, request, db, site):
+        next_url = None
+
+        if 'next_url' in request['queries']:
+            next_url = request['queries'].pop('next_url')
 
         fields = request['queries']
         fields['name'] = fields.pop('login')
@@ -409,7 +366,10 @@ class SignIn(BaseView):
                 except Exception as e:
                     print(e)
 
-            return self.redirect_302('/')
+            if next_url:
+                return redirect_302(next_url)
+            else:
+                return redirect_302('/')
         else:
             return bad_request(request)
 
@@ -421,7 +381,7 @@ class SignOut(BaseView):
         result = db.delete_object(model=site.Usersession, cookie=request['cookie'])
 
         if result:
-            return self.redirect_302('/')
+            return redirect_302('/')
         else:
             return bad_request(request)
 
@@ -437,50 +397,47 @@ class AdminView(BaseView):
         self.content = ''
         self.template = 'admin.html'
 
+    @admin_required
     def get(self, request, db, site):
 
-        if request['user']:
-            if request['user']['super']:
-                page = self.slice_path(request['path'])
+        page = slice_path(request['path'])
 
-                if len(page) > 1:
-                    if page[1] == 'users':
-                        model = site.User
-                    elif page[1] == 'categories':
-                        model = site.Category
-                    elif page[1] == 'courses':
-                        model = site.Course
-                    else:
-                        model = None
-
-                    if model is not None:
-                        self.content = 'A list of entries will be displayed here...'
-                        items = self.harvest_db_obj(db.get_object(model=model, all=True))
-
-                        exclude = ['password']
-                        form = self.make_form_from_model(model=model, exclude=exclude)
-                        return self.response(request, appendix={'db_items': items, 'form': form})
-                    else:
-                        return bad_request(request)
-                else:
-                    self.content = f'<h3>Edit entries:</h3>' \
-                                   f'<ul>' \
-                                   f'<li><a href="{request["path"]}users/">Users</a></li>' \
-                                   f'<li><a href="{request["path"]}categories/">Categories</a></li>' \
-                                   f'<li><a href="{request["path"]}courses/">Courses</a></li>' \
-                                   f'</ul>'
-                    return self.response(request)
+        if len(page) > 1:
+            if page[1] == 'users':
+                model = site.User
+            elif page[1] == 'categories':
+                model = site.Category
+            elif page[1] == 'courses':
+                model = site.Course
             else:
-                return self.redirect_302('/')
-        else:
-            return self.redirect_302('/')
+                model = None
 
+            if model is not None:
+                self.content = 'A list of entries will be displayed here...'
+                items = harvest_db_obj(db.get_object(model=model, all=True))
+
+                exclude = ['password']
+                form = make_form_from_model(model=model, exclude=exclude)
+                return self.response(request, appendix={'db_items': items, 'form': form})
+            else:
+                return bad_request(request)
+        else:
+            self.content = f'<h3>Edit entries:</h3>' \
+                           f'<ul>' \
+                           f'<li><a href="{request["path"]}users/">Users</a></li>' \
+                           f'<li><a href="{request["path"]}categories/">Categories</a></li>' \
+                           f'<li><a href="{request["path"]}courses/">Courses</a></li>' \
+                           f'</ul>'
+            return self.response(request)
+
+
+    @admin_required
     def post(self, request, db, site):
-        orig_path = self.slice_path(request['path'])[:-1]
+        orig_path = slice_path(request['path'])[:-1]
         fields = request['queries']
 
         if len(orig_path) == 2:
-            action = self.slice_path(request['path'])[-1]
+            action = slice_path(request['path'])[-1]
         else:
             action = None
 
@@ -515,10 +472,10 @@ class AdminView(BaseView):
 
                     if result:
                         print('Object update successful.')
-                        return self.redirect_302('/{0}/{1}/'.format(orig_path[0], orig_path[1]))
+                        return redirect_302('/{0}/{1}/'.format(orig_path[0], orig_path[1]))
                     else:
                         print('Update unsuccessful.')
-                        return self.redirect_302('/{0}/{1}/'.format(orig_path[0], orig_path[1]))
+                        return redirect_302('/{0}/{1}/'.format(orig_path[0], orig_path[1]))
             else:
                 return bad_request(request)
         elif action == 'delete':
@@ -527,10 +484,10 @@ class AdminView(BaseView):
                 result = db.delete_object(model=model, id=fields['id'])
                 if result:
                     print('Object deletion successful.')
-                    return self.redirect_302('/{0}/{1}/'.format(orig_path[0], orig_path[1]))
+                    return redirect_302('/{0}/{1}/'.format(orig_path[0], orig_path[1]))
                 else:
                     print('Deletion unsuccessful.')
-                    return self.redirect_302('/{0}/{1}/'.format(orig_path[0], orig_path[1]))
+                    return redirect_302('/{0}/{1}/'.format(orig_path[0], orig_path[1]))
             else:
                 return bad_request(request)
         else:
@@ -545,19 +502,21 @@ class UserView(BaseView):
         self.content = ""
         self.template = "user.html"
 
+    @login_required
     def get(self, request, db, site):
         exclude = ['id', 'is_']
 
-        if 'edit' not in self.slice_path(request['path']):
+        if 'edit' not in slice_path(request['path']):
             exclude.append('password')
 
-        form = self.make_form_from_model(model=site.User, exclude=exclude)
-        user_details = self.harvest_db_obj(db.get_object(model=site.User,
+        form = make_form_from_model(model=site.User, exclude=exclude)
+        user_details = harvest_db_obj(db.get_object(model=site.User,
                                                          name=request['user']['name']))
         return self.response(request, appendix={'user_details': user_details, 'form': form})
 
+    @login_required
     def post(self, request, db, site):
-        orig_path = self.slice_path(request['path'])
+        orig_path = slice_path(request['path'])
         fields = request['queries']
 
         if 'edit' == orig_path[1]:
@@ -574,10 +533,10 @@ class UserView(BaseView):
                                                                               password=fields['pass1'])['password']
                         else:
                             print("Passwords don't match!")
-                            return self.redirect_302('/{0}/{1}/{2}/'.format(*orig_path))
+                            return redirect_302('/{0}/{1}/{2}/'.format(*orig_path))
                     else:
                         print('Wrong password!')
-                        return self.redirect_302('/{0}/{1}/{2}/'.format(*orig_path))
+                        return redirect_302('/{0}/{1}/{2}/'.format(*orig_path))
 
                     del fields['pass_check']
                     del fields['pass1']
@@ -598,9 +557,9 @@ class UserView(BaseView):
 
                 if result:
                     print('Object update successful.')
-                    return self.redirect_302('/{0}/'.format(orig_path[0]))
+                    return redirect_302('/{0}/'.format(orig_path[0]))
                 else:
                     print('Update unsuccessful.')
-                    return self.redirect_302('/{0}/{1}/'.format(orig_path[0], orig_path[1]))
+                    return redirect_302('/{0}/{1}/'.format(orig_path[0], orig_path[1]))
         else:
             return bad_request(request)
